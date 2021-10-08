@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var fs = require("fs");
 var util = require("util");
-var tableName = 'UserHereTable';
+var tableName = 'User';
 var tableColumns = [
     {
         name: 'id',
@@ -219,4 +219,26 @@ fs.writeFileSync("./" + tableName
     .toLowerCase() + "-dtos/update-" + tableName
     .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
     .toLowerCase() + ".dto.ts", updateDto);
+var maxImportDeleteSizeDto = importCreateValidator.size + 1;
+var importDeleteValidatorText = 'import {';
+var loopDeleteDto = 1;
+importDeleteValidator.forEach(function (value, key, map) {
+    loopDeleteDto++;
+    if (loopDeleteDto === maxImportDeleteSizeDto) {
+        importDeleteValidatorText += " " + value;
+    }
+    else {
+        importDeleteValidatorText += " " + value + ",";
+    }
+});
+importDeleteValidatorText += " } from \"class-validator\";\n";
+console.log(importUpdateValidatorText);
+var deleteDto = importDeleteValidatorText + documentDeleteDto;
+fs.writeFileSync("./" + tableName
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .toLowerCase() + "/dtos/" + tableName
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .toLowerCase() + "-dtos/delete-" + tableName
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .toLowerCase() + ".dto.ts", deleteDto);
 //# sourceMappingURL=index.js.map

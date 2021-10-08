@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as util from 'util';
 
-const tableName = 'UserHereTable';
+const tableName = 'User';
 const tableColumns = [
   {
     name: 'id',
@@ -301,4 +301,32 @@ fs.writeFileSync(
     .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
     .toLowerCase()}.dto.ts`,
   updateDto
+);
+
+const maxImportDeleteSizeDto = importCreateValidator.size + 1;
+let importDeleteValidatorText = 'import {';
+let loopDeleteDto = 1;
+
+importDeleteValidator.forEach((value, key, map) => {
+  loopDeleteDto++;
+  if (loopDeleteDto === maxImportDeleteSizeDto) {
+    importDeleteValidatorText += ` ${value}`;
+  } else {
+    importDeleteValidatorText += ` ${value},`;
+  }
+});
+importDeleteValidatorText += ` } from "class-validator";\n`;
+console.log(importUpdateValidatorText);
+
+const deleteDto = importDeleteValidatorText + documentDeleteDto;
+
+fs.writeFileSync(
+  `./${tableName
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .toLowerCase()}/dtos/${tableName
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .toLowerCase()}-dtos/delete-${tableName
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .toLowerCase()}.dto.ts`,
+  deleteDto
 );
