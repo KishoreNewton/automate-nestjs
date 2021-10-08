@@ -138,11 +138,15 @@ let importCreateValidator = new Map();
 let importUpdateValidator = new Map();
 let importDeleteValidator = new Map();
 
+const createDtoArrary = [];
+const updateDtoArrary = [];
+const deleteDtoArray = [];
 for (let column of tableColumns) {
   let { name, type, nullable, primaryColumn } = column;
 
   if (primaryColumn) {
     importDeleteValidator.set('notnullable', 'IsNotEmpty');
+    deleteDtoArray.push(name);
     if (type === 'string') {
       importDeleteValidator.set('string', 'IsUUID');
       documentDeleteDto += `
@@ -187,10 +191,12 @@ for (let column of tableColumns) {
   @IsDate()`;
     }
 
+    createDtoArrary.push(name);
     documentCreateDto += `
   ${name}: ${type};\n`;
   }
 
+  updateDtoArrary.push(name);
   if (!nullable && primaryColumn) {
     importUpdateValidator.set('nullable', 'IsNotEmpty');
     documentUpdateDto += `
