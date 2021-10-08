@@ -3,6 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var fs = require("fs");
 var util = require("util");
 var tableName = 'User';
+var globalFileName = tableName
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .toLowerCase();
 var tableColumns = [
     {
         name: 'id',
@@ -86,14 +89,8 @@ importTypeorm.forEach(function (value, key, map) {
 });
 importTypeormText += " } from \"typeorm\";\n";
 var entity = importTypeormText + documentEnity;
-fs.mkdirSync("./" + tableName
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .toLowerCase() + "/entities", { recursive: true });
-fs.writeFileSync("./" + tableName
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .toLowerCase() + "/entities/" + tableName
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .toLowerCase() + ".entity.ts", entity);
+fs.mkdirSync("./" + globalFileName + "/entities", { recursive: true });
+fs.writeFileSync("./" + globalFileName + "/entities/" + globalFileName + ".entity.ts", entity);
 var documentCreateDto = "\nexport class Create" + tableName + "Dto {";
 var documentUpdateDto = "\nexport class Update" + tableName + "Dto {";
 var documentDeleteDto = "\nexport class Delete" + tableName + "Dto {";
@@ -183,20 +180,10 @@ importCreateValidator.forEach(function (value, key, map) {
 importCreateValidatorText += " } from \"class-validator\";\n";
 console.log(importCreateValidatorText);
 var createDto = importCreateValidatorText + documentCreateDto;
-fs.mkdirSync("./" + tableName
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .toLowerCase() + "/dtos/" + tableName
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .toLowerCase() + "-dtos", {
+fs.mkdirSync("./" + globalFileName + "/dtos/" + globalFileName + "-dtos", {
     recursive: true
 });
-fs.writeFileSync("./" + tableName
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .toLowerCase() + "/dtos/" + tableName
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .toLowerCase() + "-dtos/create-" + tableName
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .toLowerCase() + ".dto.ts", createDto);
+fs.writeFileSync("./" + globalFileName + "/dtos/" + globalFileName + "-dtos/create-" + globalFileName + ".dto.ts", createDto);
 var maxImportSizeUpdateDto = importCreateValidator.size + 1;
 var importUpdateValidatorText = 'import {';
 var loopUpdateDto = 1;
@@ -212,13 +199,7 @@ importUpdateValidator.forEach(function (value, key, map) {
 importUpdateValidatorText += " } from \"class-validator\";\n";
 console.log(importUpdateValidatorText);
 var updateDto = importUpdateValidatorText + documentUpdateDto;
-fs.writeFileSync("./" + tableName
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .toLowerCase() + "/dtos/" + tableName
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .toLowerCase() + "-dtos/update-" + tableName
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .toLowerCase() + ".dto.ts", updateDto);
+fs.writeFileSync("./" + globalFileName + "/dtos/" + globalFileName + "-dtos/update-" + globalFileName + ".dto.ts", updateDto);
 var maxImportDeleteSizeDto = importCreateValidator.size + 1;
 var importDeleteValidatorText = 'import {';
 var loopDeleteDto = 1;
@@ -234,11 +215,7 @@ importDeleteValidator.forEach(function (value, key, map) {
 importDeleteValidatorText += " } from \"class-validator\";\n";
 console.log(importUpdateValidatorText);
 var deleteDto = importDeleteValidatorText + documentDeleteDto;
-fs.writeFileSync("./" + tableName
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .toLowerCase() + "/dtos/" + tableName
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .toLowerCase() + "-dtos/delete-" + tableName
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .toLowerCase() + ".dto.ts", deleteDto);
+fs.writeFileSync("./" + globalFileName + "/dtos/" + globalFileName + "-dtos/delete-" + globalFileName + ".dto.ts", deleteDto);
+var documentController = "\n@Injectable()\n@Controller('" + tableName.replace(/([a-z0-9])([A-Z])/g, '$1-$2') + "')\nexport class " + tableName + "Controller {\n  constructor(private readonly " + (tableName.charAt(0).toLowerCase() + tableName.slice(1)) + "Service: " + tableName + "Service) {}\n  \n  @Get()\n  async fetchAll" + (tableName.charAt(0).toLowerCase() + tableName.slice(1)) + "() {\n    return this." + (tableName.charAt(0).toLowerCase() + tableName.slice(1)) + "Service.fetchAll" + (tableName.charAt(0).toLowerCase() + tableName.slice(1)) + "();\n  }";
+fs.writeFileSync("./" + globalFileName + "/" + globalFileName + ".controller.ts", documentController);
 //# sourceMappingURL=index.js.map

@@ -2,6 +2,9 @@ import * as fs from 'fs';
 import * as util from 'util';
 
 const tableName = 'User';
+const globalFileName = tableName
+  .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+  .toLowerCase();
 const tableColumns = [
   {
     name: 'id',
@@ -115,17 +118,11 @@ importTypeormText += ` } from "typeorm";\n`;
 const entity = importTypeormText + documentEnity;
 
 fs.mkdirSync(
-  `./${tableName
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .toLowerCase()}/entities`,
+  `./${globalFileName}/entities`,
   { recursive: true }
 );
 fs.writeFileSync(
-  `./${tableName
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .toLowerCase()}/entities/${tableName
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .toLowerCase()}.entity.ts`,
+  `./${globalFileName}/entities/${globalFileName}.entity.ts`,
   entity
 );
 
@@ -254,24 +251,11 @@ console.log(importCreateValidatorText);
 
 const createDto = importCreateValidatorText + documentCreateDto;
 
-fs.mkdirSync(
-  `./${tableName
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .toLowerCase()}/dtos/${tableName
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .toLowerCase()}-dtos`,
-  {
-    recursive: true
-  }
-);
+fs.mkdirSync(`./${globalFileName}/dtos/${globalFileName}-dtos`, {
+  recursive: true
+});
 fs.writeFileSync(
-  `./${tableName
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .toLowerCase()}/dtos/${tableName
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .toLowerCase()}-dtos/create-${tableName
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .toLowerCase()}.dto.ts`,
+  `./${globalFileName}/dtos/${globalFileName}-dtos/create-${globalFileName}.dto.ts`,
   createDto
 );
 
@@ -293,13 +277,7 @@ console.log(importUpdateValidatorText);
 const updateDto = importUpdateValidatorText + documentUpdateDto;
 
 fs.writeFileSync(
-  `./${tableName
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .toLowerCase()}/dtos/${tableName
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .toLowerCase()}-dtos/update-${tableName
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .toLowerCase()}.dto.ts`,
+  `./${globalFileName}/dtos/${globalFileName}-dtos/update-${globalFileName}.dto.ts`,
   updateDto
 );
 
@@ -321,12 +299,28 @@ console.log(importUpdateValidatorText);
 const deleteDto = importDeleteValidatorText + documentDeleteDto;
 
 fs.writeFileSync(
-  `./${tableName
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .toLowerCase()}/dtos/${tableName
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .toLowerCase()}-dtos/delete-${tableName
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .toLowerCase()}.dto.ts`,
+  `./${globalFileName}/dtos/${globalFileName}-dtos/delete-${globalFileName}.dto.ts`,
   deleteDto
+);
+
+let documentController = `
+@Injectable()
+@Controller('${tableName.replace(/([a-z0-9])([A-Z])/g, '$1-$2')}')
+export class ${tableName}Controller {
+  constructor(private readonly ${
+    tableName.charAt(0).toLowerCase() + tableName.slice(1)
+  }Service: ${tableName}Service) {}
+  
+  @Get()
+  async fetchAll${tableName.charAt(0).toLowerCase() + tableName.slice(1)}() {
+    return this.${
+      tableName.charAt(0).toLowerCase() + tableName.slice(1)
+    }Service.fetchAll${
+  tableName.charAt(0).toLowerCase() + tableName.slice(1)
+}();
+  }`;
+
+fs.writeFileSync(
+  `./${globalFileName}/${globalFileName}.controller.ts`,
+  documentController
 );
