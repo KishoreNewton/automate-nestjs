@@ -6,6 +6,8 @@ var tableName = 'User';
 var globalFileName = tableName
     .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
     .toLowerCase();
+var controllerServiceName = tableName.charAt(0).toLowerCase() + tableName.slice(1);
+var controllerServiceNameAlt = tableName.charAt(0).toUpperCase() + tableName.slice(1);
 var tableColumns = [
     {
         name: 'id',
@@ -216,6 +218,6 @@ importDeleteValidatorText += " } from \"class-validator\";\n";
 console.log(importUpdateValidatorText);
 var deleteDto = importDeleteValidatorText + documentDeleteDto;
 fs.writeFileSync("./" + globalFileName + "/dtos/" + globalFileName + "-dtos/delete-" + globalFileName + ".dto.ts", deleteDto);
-var documentController = "\n@Injectable()\n@Controller('" + tableName.replace(/([a-z0-9])([A-Z])/g, '$1-$2') + "')\nexport class " + tableName + "Controller {\n  constructor(private readonly " + (tableName.charAt(0).toLowerCase() + tableName.slice(1)) + "Service: " + tableName + "Service) {}\n  \n  @Get()\n  async fetchAll" + (tableName.charAt(0).toLowerCase() + tableName.slice(1)) + "() {\n    return this." + (tableName.charAt(0).toLowerCase() + tableName.slice(1)) + "Service.fetchAll" + (tableName.charAt(0).toLowerCase() + tableName.slice(1)) + "();\n  }";
+var documentController = "\n@Injectable()\n@Controller('" + controllerServiceName + "')\nexport class " + tableName + "Controller {\n  constructor(private readonly " + controllerServiceName + "Service: " + tableName + "Service) {}\n  \n  @Get()\n  async fetchAll" + controllerServiceNameAlt + "() {\n    return this." + controllerServiceName + "Service.fetchAll" + controllerServiceNameAlt + "();\n  }";
 fs.writeFileSync("./" + globalFileName + "/" + globalFileName + ".controller.ts", documentController);
 //# sourceMappingURL=index.js.map

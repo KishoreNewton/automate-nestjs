@@ -5,6 +5,10 @@ const tableName = 'User';
 const globalFileName = tableName
   .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
   .toLowerCase();
+const controllerServiceName =
+  tableName.charAt(0).toLowerCase() + tableName.slice(1);
+const controllerServiceNameAlt =
+  tableName.charAt(0).toUpperCase() + tableName.slice(1);
 const tableColumns = [
   {
     name: 'id',
@@ -117,10 +121,7 @@ importTypeormText += ` } from "typeorm";\n`;
 
 const entity = importTypeormText + documentEnity;
 
-fs.mkdirSync(
-  `./${globalFileName}/entities`,
-  { recursive: true }
-);
+fs.mkdirSync(`./${globalFileName}/entities`, { recursive: true });
 fs.writeFileSync(
   `./${globalFileName}/entities/${globalFileName}.entity.ts`,
   entity
@@ -305,19 +306,13 @@ fs.writeFileSync(
 
 let documentController = `
 @Injectable()
-@Controller('${tableName.replace(/([a-z0-9])([A-Z])/g, '$1-$2')}')
+@Controller('${controllerServiceName}')
 export class ${tableName}Controller {
-  constructor(private readonly ${
-    tableName.charAt(0).toLowerCase() + tableName.slice(1)
-  }Service: ${tableName}Service) {}
+  constructor(private readonly ${controllerServiceName}Service: ${tableName}Service) {}
   
   @Get()
-  async fetchAll${tableName.charAt(0).toLowerCase() + tableName.slice(1)}() {
-    return this.${
-      tableName.charAt(0).toLowerCase() + tableName.slice(1)
-    }Service.fetchAll${
-  tableName.charAt(0).toLowerCase() + tableName.slice(1)
-}();
+  async fetchAll${controllerServiceNameAlt}() {
+    return this.${controllerServiceName}Service.fetchAll${controllerServiceNameAlt}();
   }`;
 
 fs.writeFileSync(

@@ -1,10 +1,10 @@
 
 @Injectable()
-@Controller('User')
+@Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
   
   @Get()
-  async fetchAlluser() {
-    return this.userService.fetchAlluser();
+  async fetchAllUser() {
+    return this.userService.fetchAllUser();
   }
