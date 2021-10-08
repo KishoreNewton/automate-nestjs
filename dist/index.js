@@ -43,6 +43,9 @@ var documentEnity = "\n@Entity()\nexport class " + tableName + " {";
 var importTypeorm = new Map();
 var importForigenKey = [];
 var columnObject = {};
+importTypeorm.set('entity', 'Entity');
+importTypeorm.set('createdDateColumn', 'CreatedDateColumn');
+importTypeorm.set('updatedDateColumn', 'UpdatedDateColumn');
 for (var _i = 0, tableColumns_1 = tableColumns; _i < tableColumns_1.length; _i++) {
     var column = tableColumns_1[_i];
     var name_1 = column.name, primaryColumn = column.primaryColumn, index = column.index, uuid = column.uuid, type = column.type, columnType = column.columnType, nullable = column.nullable, unique = column.unique;
@@ -54,6 +57,7 @@ for (var _i = 0, tableColumns_1 = tableColumns; _i < tableColumns_1.length; _i++
         columnObject.type = columnType;
     console.log(columnObject);
     if (index) {
+        importTypeorm.set('index', 'Index');
         documentEnity += "\n  @Index()";
     }
     if (primaryColumn) {
@@ -61,6 +65,7 @@ for (var _i = 0, tableColumns_1 = tableColumns; _i < tableColumns_1.length; _i++
         documentEnity += "\n  @PrimaryGeneratedColumn(" + (uuid ? "'uuid'" : '') + ")\n  " + name_1 + ": " + type + ";\n    ";
     }
     if (!primaryColumn) {
+        importTypeorm.set('defaultColumn', 'Column');
         documentEnity += "\n  @Column(" + (Object.keys(columnObject).length === 0
             ? ''
             : util.inspect(columnObject, false, null, false)) + ")\n  " + name_1 + ": " + type + ";\n    ";
@@ -68,11 +73,29 @@ for (var _i = 0, tableColumns_1 = tableColumns; _i < tableColumns_1.length; _i++
     columnObject = {};
 }
 documentEnity += "\n  @Index()\n  @CreatedDateColumn()\n  " + createdColumn + ": Date;\n\n  @Index()\n  @UpdatedDateColumn()\n  " + updatedColumn + ": Date;\n}";
+var importTypeormText = 'import {';
+//importTypeorm.forEach(import => {
+//  importTypeormText += ` ${import}`,
+//})
+console.log(importTypeorm);
+var maxImportSize = importTypeorm.size + 1;
+var loop = 1;
+importTypeorm.forEach(function (value, key, map) {
+    loop++;
+    if (loop === maxImportSize) {
+        importTypeormText += " " + value;
+    }
+    else {
+        importTypeormText += " " + value + ",";
+    }
+});
+importTypeormText += " } from \"typeorm\";\n";
+var entity = importTypeormText + documentEnity;
 fs.mkdir("./" + tableName.toLowerCase() + "/entities", { recursive: true }, function (err) {
     if (err)
         throw err;
 });
-fs.writeFile("./" + tableName.toLowerCase() + "/entities/" + tableName.toLowerCase() + ".entity.ts", documentEnity, function (err) {
+fs.writeFile("./" + tableName.toLowerCase() + "/entities/" + tableName.toLowerCase() + ".entity.ts", entity, function (err) {
     if (err)
         throw err;
     console.log('The file was succesfully saved!');

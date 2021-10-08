@@ -44,8 +44,13 @@ let documentEnity = `
 export class ${tableName} {`;
 
 let importTypeorm = new Map();
-let importForigenKey = [];
+let importForigenKey: any[] = [];
 let columnObject: any = {};
+
+importTypeorm.set('entity', 'Entity');
+importTypeorm.set('createdDateColumn', 'CreatedDateColumn');
+importTypeorm.set('updatedDateColumn', 'UpdatedDateColumn');
+
 for (let column of tableColumns) {
   let { name, primaryColumn, index, uuid, type, columnType, nullable, unique } =
     column;
@@ -56,6 +61,7 @@ for (let column of tableColumns) {
   console.log(columnObject);
 
   if (index) {
+    importTypeorm.set('index', 'Index');
     documentEnity += `
   @Index()`;
   }
@@ -69,6 +75,7 @@ for (let column of tableColumns) {
   }
 
   if (!primaryColumn) {
+    importTypeorm.set('defaultColumn', 'Column');
     documentEnity += `
   @Column(${
     Object.keys(columnObject).length === 0
@@ -90,13 +97,32 @@ documentEnity += `
   @UpdatedDateColumn()
   ${updatedColumn}: Date;
 }`;
+let importTypeormText = 'import {';
+//importTypeorm.forEach(import => {
+//  importTypeormText += ` ${import}`,
+//})
+console.log(importTypeorm);
+const maxImportSize = importTypeorm.size + 1;
+let loop = 1;
+importTypeorm.forEach((value, key, map) => {
+  loop++;
+  if (loop === maxImportSize) {
+    importTypeormText += ` ${value}`;
+  } else {
+    importTypeormText += ` ${value},`;
+  }
+});
+
+importTypeormText += ` } from "typeorm";\n`;
+
+const entity = importTypeormText + documentEnity;
 
 fs.mkdir(`./${tableName.toLowerCase()}/entities`, { recursive: true }, err => {
   if (err) throw err;
 });
 fs.writeFile(
   `./${tableName.toLowerCase()}/entities/${tableName.toLowerCase()}.entity.ts`,
-  documentEnity,
+  entity,
   err => {
     if (err) throw err;
 
