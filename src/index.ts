@@ -73,7 +73,7 @@ for (let column of tableColumns) {
   @Column(${
     Object.keys(columnObject).length === 0
       ? ''
-      : util.inspect(columnObject, false, null, true)
+      : util.inspect(columnObject, false, null, false)
   })
   ${name}: ${type};
     `;
@@ -91,8 +91,15 @@ documentEnity += `
   ${updatedColumn}: Date;
 }`;
 
-fs.writeFile(`${tableName.toLowerCase()}.entity.ts`, documentEnity, err => {
+fs.mkdir(`./${tableName.toLowerCase()}/entities`, { recursive: true }, err => {
   if (err) throw err;
-
-  console.log('The file was succesfully saved!');
 });
+fs.writeFile(
+  `./${tableName.toLowerCase()}/entities/${tableName.toLowerCase()}.entity.ts`,
+  documentEnity,
+  err => {
+    if (err) throw err;
+
+    console.log('The file was succesfully saved!');
+  }
+);

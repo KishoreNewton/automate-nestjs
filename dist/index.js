@@ -60,16 +60,19 @@ for (var _i = 0, tableColumns_1 = tableColumns; _i < tableColumns_1.length; _i++
         importTypeorm.set('primaryColumn', 'PrimaryGeneratedColumn');
         documentEnity += "\n  @PrimaryGeneratedColumn(" + (uuid ? "'uuid'" : '') + ")\n  " + name_1 + ": " + type + ";\n    ";
     }
-    console.log('test', Object.keys(columnObject).length === 0 ? '' : columnObject);
     if (!primaryColumn) {
         documentEnity += "\n  @Column(" + (Object.keys(columnObject).length === 0
             ? ''
-            : util.inspect(columnObject, false, null, true)) + ")\n  " + name_1 + ": " + type + ";\n    ";
+            : util.inspect(columnObject, false, null, false)) + ")\n  " + name_1 + ": " + type + ";\n    ";
     }
     columnObject = {};
 }
 documentEnity += "\n  @Index()\n  @CreatedDateColumn()\n  " + createdColumn + ": Date;\n\n  @Index()\n  @UpdatedDateColumn()\n  " + updatedColumn + ": Date;\n}";
-fs.writeFile(tableName.toLowerCase() + ".entity.ts", documentEnity, function (err) {
+fs.mkdir("./" + tableName.toLowerCase() + "/entities", { recursive: true }, function (err) {
+    if (err)
+        throw err;
+});
+fs.writeFile("./" + tableName.toLowerCase() + "/entities/" + tableName.toLowerCase() + ".entity.ts", documentEnity, function (err) {
     if (err)
         throw err;
     console.log('The file was succesfully saved!');
