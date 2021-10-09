@@ -85,6 +85,11 @@ export class UserService {
 
     try {
       const user = new User();
+      
+      user.empNo = empNo;
+      user.organizationEmailId = organizationEmailId;
+      user.empStatus = empStatus;
+      user.mobileNumber = mobileNumber;
 
       const result = await queryRunner.manager.save<User>(user);
     } catch (error) {

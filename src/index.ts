@@ -392,6 +392,20 @@ createDtoArrary.forEach(data => {
     create += `${data}, `;
   }
 });
+
+let createServiceSave = '';
+let createServiceSaveLoop = 1;
+let createServiceSaveMaxLoop = createDtoArrary.length + 1;
+createDtoArrary.forEach(data => {
+  createServiceSaveLoop++;
+  if (createServiceSaveLoop === createServiceSaveMaxLoop) {
+    createServiceSave += `
+      ${controllerServiceName}.${data} = ${data}`;
+  } else {
+    createServiceSave += `
+      ${controllerServiceName}.${data} = ${data};`;
+  }
+});
 let documentService = `
 import { BadRequestException, InternalServerErrorException, Injectable  } from '@nestjs/common';
 import { fetchAll${tableName}s } from './constants/cache.constant';
@@ -479,8 +493,26 @@ export class ${tableName}Service {
 
     try {
       const ${controllerServiceName} = new ${tableName}();
+      ${createServiceSave};
 
       const result = await queryRunner.manager.save<${tableName}>(${controllerServiceName});
+      
+      if (!result) {
+        return {
+          ok: false,
+          error: true,
+          message: UnableToCreate(route),
+          code: UnableToCreateCode
+        };
+      }
+
+      await client.del(fetchAll${tableName}s);
+  
+      return {
+        ok: true,
+        error: false,
+        message: CreateSuccessful(route);
+      }
     } catch (error) {
       await queryRunner.rollbackTransaction();
       if (error && error.code === PG_UNIQUE_CONSTRAINT_VIOLATION) {
