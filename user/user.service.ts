@@ -105,7 +105,7 @@ export class UserService {
       return {
         ok: true,
         error: false,
-        message: CreateSuccessful(route);
+        message: CreateSuccessful(route)
       }
     
     } catch (error) {
@@ -221,8 +221,8 @@ export class UserService {
 
   async verifyJWT(token: string) {
     try {
-      const PRIVATE_KEY = JSON.parse('"undefined"');
-      const PUBLIC_KEY = JSON.parse('"undefined"');
+      const PRIVATE_KEY = JSON.parse(`"${process.env.PRIVATE_KEY}"`);
+      const PUBLIC_KEY = JSON.parse(`"${process.env.PUBLIC_KEY}"`);
 
       const decoded = jwt.verify(token, PUBLIC_KEY, {
         algorithms: ['RS512']

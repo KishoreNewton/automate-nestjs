@@ -46,12 +46,12 @@ const tableColumns = [
 ];
 const createdColumn = 'createdOn';
 const updatedColumn = 'updatedOn';
-const createdByColumn = "createdBy";
-const updatedByColumn = "updatedBy";
+const createdByColumn = 'createdBy';
+const updatedByColumn = 'updatedBy';
 
 const primaryKey = tableColumns.filter(column => {
   return column.primaryColumn === true;
-})
+});
 
 let documentEnity = `
 @Entity()
@@ -425,17 +425,21 @@ createDtoArrary.forEach(data => {
   }
 });
 
-let updateServiceSave = '' ;
+let updateServiceSave = '';
 let updateServiceSaveLoop = 1;
 let updateServiceSaveMaxLoop = createDtoArrary.length + 1;
 updateDtoArrary.forEach(data => {
   updateServiceSaveLoop++;
   if (updateServiceSaveLoop === updateServiceSaveMaxLoop) {
     updateServiceSave += `
-    ${data === 'id' ? '' : `  if (${data})`} ${controllerServiceName}.${data} = ${data}`;
+    ${
+      data === 'id' ? '' : `  if (${data})`
+    } ${controllerServiceName}.${data} = ${data}`;
   } else {
     updateServiceSave += `
-    ${data === 'id' ? '' : `  if (${data})`}  ${controllerServiceName}.${data} = ${data};`;
+    ${
+      data === 'id' ? '' : `  if (${data})`
+    }  ${controllerServiceName}.${data} = ${data};`;
   }
 });
 let documentService = `
@@ -541,7 +545,7 @@ export class ${tableName}Service {
       return {
         ok: true,
         error: false,
-        message: CreateSuccessful(route);
+        message: CreateSuccessful(route)
       }
     
     } catch (error) {
@@ -652,8 +656,8 @@ export class ${tableName}Service {
 
   async verifyJWT(token: string) {
     try {
-      const PRIVATE_KEY = JSON.parse('"${process.env.PRIVATE_KEY}"');
-      const PUBLIC_KEY = JSON.parse('"${process.env.PUBLIC_KEY}"');
+      const PRIVATE_KEY = JSON.parse(\`"\$\{process.env.PRIVATE_KEY\}\"\`);
+      const PUBLIC_KEY = JSON.parse(\`"\${process.env.PUBLIC_KEY\}"\`);
 
       const decoded = jwt.verify(token, PUBLIC_KEY, {
         algorithms: ['RS512']
