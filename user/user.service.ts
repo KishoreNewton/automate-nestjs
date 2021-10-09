@@ -24,8 +24,6 @@ import {
 import {
   CreateSuccessful,
   DeleteSuccessful,
-  MailSentSuccessfully,
-  PasswordResetSuccessful,
   UpdateSuccessful
 } from 'sm-messages';
 import * as jwt from 'jsonwebtoken';
@@ -92,8 +90,27 @@ export class UserService {
       user.mobileNumber = mobileNumber;
 
       const result = await queryRunner.manager.save<User>(user);
+      
+      if (!result) {
+        return {
+          ok: false,
+          error: true,
+          message: UnableToCreate(route),
+          code: UnableToCreateCode
+        };
+      }
+
+      await client.del(fetchAllUsers);
+  
+      return {
+        ok: true,
+        error: false,
+        message: CreateSuccessful(route);
+      }
+    
     } catch (error) {
       await queryRunner.rollbackTransaction();
+      
       if (error && error.code === PG_UNIQUE_CONSTRAINT_VIOLATION) {
         throw new BadRequestException({
           ok: false,
@@ -102,6 +119,7 @@ export class UserService {
           code: error.code
         });
       }
+      
       if (error && error.code === PG_VIOLATES_FK_CONSTRAINT) {
         throw new BadRequestException({
           ok: false,
@@ -110,12 +128,92 @@ export class UserService {
           code: error.code
         });
       }
+      
       throw new InternalServerErrorException({
         ok: false,
         error: true,
         code: SomethingWentWrongCode,
         message: SomethingWentWrong
       });
+    
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async updateUser (
+    { id, empNo, organizationEmailId, empStatus, mobileNumber  },
+    pieUserPayload
+  ) {
+    const route = 'User';
+    const connection = getConnection();
+    const queryRunner = connection.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const user = new User();
+      
+      user.id = id;
+      if (empNo)  user.empNo = empNo;
+      if (organizationEmailId)  user.organizationEmailId = organizationEmailId;
+      if (empStatus) user.empStatus = empStatus
+      if (mobileNumber)  user.mobileNumber = mobileNumber;
+
+      const result = await queryRunner.manager.update<User>(
+        User,
+        { id  },
+        user
+      )
+
+      if (result.affected === 0) {
+        return {
+          ok: false,
+          error: true,
+          message: UnableToUpdateParticular(route),
+          code: UnableToUpdateParticularCode
+        };
+      }
+
+      await queryRunner.commitTransaction();
+
+      await client.del(fetchAllUsers);
+
+      return {
+        ok: true,
+        error: false,
+        message: UpdateSuccessful(route)
+      }
+
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+
+      if (error && error.code === PG_UNIQUE_CONSTRAINT_VIOLATION) {
+        throw new BadRequestException({
+          ok: false,
+          error: true,
+          message: error.detail,
+          code: error.code
+        });
+      }
+
+      if (error && error.code === PG_VIOLATES_FK_CONSTRAINT) {
+        throw new BadRequestException({
+          ok: false,
+          error: true,
+          message: error.detail,
+          code: error.code
+        });
+      }
+
+      throw new InternalServerErrorException({
+        ok: false,
+        error: true,
+        code: SomethingWentWrongCode,
+        message: SomethingWentWrong
+      });
+
     } finally {
       await queryRunner.release();
     }

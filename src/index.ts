@@ -46,6 +46,12 @@ const tableColumns = [
 ];
 const createdColumn = 'createdOn';
 const updatedColumn = 'updatedOn';
+const createdByColumn = "createdBy";
+const updatedByColumn = "updatedBy";
+
+const primaryKey = tableColumns.filter(column => {
+  return column.primaryColumn === true;
+})
 
 let documentEnity = `
 @Entity()
@@ -393,6 +399,18 @@ createDtoArrary.forEach(data => {
   }
 });
 
+let update = '';
+let updateDtoArraryLoop = 1;
+let updateDtoArraryMaxLoop = updateDtoArrary.length + 1;
+updateDtoArrary.forEach(data => {
+  updateDtoArraryLoop++;
+  if (updateDtoArraryLoop === updateDtoArraryMaxLoop) {
+    update += `${data}`;
+  } else {
+    update += `${data}, `;
+  }
+});
+
 let createServiceSave = '';
 let createServiceSaveLoop = 1;
 let createServiceSaveMaxLoop = createDtoArrary.length + 1;
@@ -404,6 +422,20 @@ createDtoArrary.forEach(data => {
   } else {
     createServiceSave += `
       ${controllerServiceName}.${data} = ${data};`;
+  }
+});
+
+let updateServiceSave = '' ;
+let updateServiceSaveLoop = 1;
+let updateServiceSaveMaxLoop = createDtoArrary.length + 1;
+updateDtoArrary.forEach(data => {
+  updateServiceSaveLoop++;
+  if (updateServiceSaveLoop === updateServiceSaveMaxLoop) {
+    updateServiceSave += `
+    ${data === 'id' ? '' : `  if (${data})`} ${controllerServiceName}.${data} = ${data}`;
+  } else {
+    updateServiceSave += `
+    ${data === 'id' ? '' : `  if (${data})`}  ${controllerServiceName}.${data} = ${data};`;
   }
 });
 let documentService = `
@@ -432,8 +464,6 @@ import {
 import {
   CreateSuccessful,
   DeleteSuccessful,
-  MailSentSuccessfully,
-  PasswordResetSuccessful,
   UpdateSuccessful
 } from 'sm-messages';
 import * as jwt from 'jsonwebtoken';
@@ -513,8 +543,10 @@ export class ${tableName}Service {
         error: false,
         message: CreateSuccessful(route);
       }
+    
     } catch (error) {
       await queryRunner.rollbackTransaction();
+      
       if (error && error.code === PG_UNIQUE_CONSTRAINT_VIOLATION) {
         throw new BadRequestException({
           ok: false,
@@ -523,6 +555,7 @@ export class ${tableName}Service {
           code: error.code
         });
       }
+      
       if (error && error.code === PG_VIOLATES_FK_CONSTRAINT) {
         throw new BadRequestException({
           ok: false,
@@ -531,12 +564,87 @@ export class ${tableName}Service {
           code: error.code
         });
       }
+      
       throw new InternalServerErrorException({
         ok: false,
         error: true,
         code: SomethingWentWrongCode,
         message: SomethingWentWrong
       });
+    
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async update${tableName} (
+    { ${update}  },
+    pieUserPayload
+  ) {
+    const route = '${routeName}';
+    const connection = getConnection();
+    const queryRunner = connection.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const ${controllerServiceName} = new ${tableName}();
+      ${updateServiceSave}
+
+      const result = await queryRunner.manager.update<${tableName}>(
+        ${tableName},
+        { ${primaryKey[0].name}  },
+        ${controllerServiceName}
+      )
+
+      if (result.affected === 0) {
+        return {
+          ok: false,
+          error: true,
+          message: UnableToUpdateParticular(route),
+          code: UnableToUpdateParticularCode
+        };
+      }
+
+      await queryRunner.commitTransaction();
+
+      await client.del(fetchAll${tableName}s);
+
+      return {
+        ok: true,
+        error: false,
+        message: UpdateSuccessful(route)
+      }
+
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+
+      if (error && error.code === PG_UNIQUE_CONSTRAINT_VIOLATION) {
+        throw new BadRequestException({
+          ok: false,
+          error: true,
+          message: error.detail,
+          code: error.code
+        });
+      }
+
+      if (error && error.code === PG_VIOLATES_FK_CONSTRAINT) {
+        throw new BadRequestException({
+          ok: false,
+          error: true,
+          message: error.detail,
+          code: error.code
+        });
+      }
+
+      throw new InternalServerErrorException({
+        ok: false,
+        error: true,
+        code: SomethingWentWrongCode,
+        message: SomethingWentWrong
+      });
+
     } finally {
       await queryRunner.release();
     }
