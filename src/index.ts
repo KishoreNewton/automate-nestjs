@@ -9,6 +9,7 @@ const controllerServiceName =
   tableName.charAt(0).toLowerCase() + tableName.slice(1);
 const controllerServiceNameAlt =
   tableName.charAt(0).toUpperCase() + tableName.slice(1);
+const routeName = tableName.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
 const tableColumns = [
   {
     name: 'id',
@@ -370,4 +371,165 @@ export class ${tableName}Controller {
 fs.writeFileSync(
   `./${globalFileName}/${globalFileName}.controller.ts`,
   documentController
+);
+
+let documentCache = `export const fetchAll${tableName}s = "fetchAll${tableName}s";`;
+
+fs.mkdirSync(`${globalFileName}/constants`, { recursive: true });
+fs.writeFileSync(
+  `./${globalFileName}/constants/cache.constant.ts`,
+  documentCache
+);
+
+let create = '';
+let createDtoArraryLoop = 1;
+let createDtoArraryMaxLoop = createDtoArrary.length + 1;
+createDtoArrary.forEach(data => {
+  createDtoArraryLoop++;
+  if (createDtoArraryLoop === createDtoArraryMaxLoop) {
+    create += `${data}`;
+  } else {
+    create += `${data}, `;
+  }
+});
+let documentService = `
+import { BadRequestException, InternalServerErrorException, Injectable  } from '@nestjs/common';
+import { fetchAll${tableName}s } from './constants/cache.constant';
+import { getConnection  } from 'typeorm';
+import { CoreOutput  } from 'sm-interfaces';
+import { ${tableName} } from './entities/${globalFileName}.entity';
+import { client  } from '../main';
+import {
+  PG_UNIQUE_CONSTRAINT_VIOLATION,
+  PG_VIOLATES_FK_CONSTRAINT,
+  SomethingWentWrong,
+  SomethingWentWrongCode,
+  UnableToCreate,
+  UnableToCreateCode,
+  UnableToDeleteParticular,
+  UnableToDeleteParticularCode,
+  UnableToFindAny,
+  UnableToFindAnyCode,
+  UnableToFindParticularContent,
+  UnableToFindParticularContentCode,
+  UnableToUpdateParticular,
+  UnableToUpdateParticularCode
+} from 'sm-errors';
+import {
+  CreateSuccessful,
+  DeleteSuccessful,
+  MailSentSuccessfully,
+  PasswordResetSuccessful,
+  UpdateSuccessful
+} from 'sm-messages';
+import * as jwt from 'jsonwebtoken';
+
+@Injectable()
+export class ${tableName}Service {
+  constructor() {}
+
+  async fetchAll${controllerServiceNameAlt} () {
+    try {
+      const cache = await client.get(fetchAll${tableName}s);
+      if (cache) return JSON.parse(cache);
+    } catch (error) {
+      await client.del(fetchAll${tableName}s);
+    }
+
+    const route = '${routeName}';
+    const connection = getConnection();
+    const queryRunner = connection.createQueryRunner();
+    
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    
+    try {
+      const result = await queryRunner.manager.find<${tableName}>(
+        ${tableName}
+      );
+
+      await client.set(fetchAll${tableName}s, JSON.stringify(result));
+
+      await queryRunner.commitTransaction();
+
+      return result;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw new InternalServerErrorException({
+        ok: false,
+        error: true,
+        message: SomethingWentWrong,
+        code: SomethingWentWrongCode
+      })
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async create${tableName} (
+    { ${create}  },
+    pieUserPayload
+  ): Promise<CoreOutput> {
+    const route = '${routeName}';
+    const connection = getConnection(); 
+    const queryRunner = connection.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const ${controllerServiceName} = new ${tableName}();
+
+      const result = await queryRunner.manager.save<${tableName}>(${controllerServiceName});
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      if (error && error.code === PG_UNIQUE_CONSTRAINT_VIOLATION) {
+        throw new BadRequestException({
+          ok: false,
+          error: true,
+          message: error.detail,
+          code: error.code
+        });
+      }
+      if (error && error.code === PG_VIOLATES_FK_CONSTRAINT) {
+        throw new BadRequestException({
+          ok: false,
+          error: true,
+          message: error.detail,
+          code: error.code
+        });
+      }
+      throw new InternalServerErrorException({
+        ok: false,
+        error: true,
+        code: SomethingWentWrongCode,
+        message: SomethingWentWrong
+      });
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async verifyJWT(token: string) {
+    try {
+      const PRIVATE_KEY = JSON.parse('"${process.env.PRIVATE_KEY}"');
+      const PUBLIC_KEY = JSON.parse('"${process.env.PUBLIC_KEY}"');
+
+      const decoded = jwt.verify(token, PUBLIC_KEY, {
+        algorithms: ['RS512']
+      });
+
+      return decoded;
+    } catch (error) {
+      return {
+        payload: null,
+        expired: error.message.includes('jwt expired')
+      };
+    }
+  }
+}`;
+
+fs.writeFileSync(
+  `./${globalFileName}/${globalFileName}.service.ts`,
+  documentService
 );
