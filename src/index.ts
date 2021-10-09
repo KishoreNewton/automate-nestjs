@@ -202,7 +202,6 @@ for (let column of tableColumns) {
     documentUpdateDto += `
   @IsNotEmpty()`;
   }
-  console.log(nullable, primaryColumn);
   if (nullable && !primaryColumn) {
     importUpdateValidator.set('nullable', 'IsOptional');
     documentUpdateDto += `
@@ -254,7 +253,6 @@ importCreateValidator.forEach((value, key, map) => {
   }
 });
 importCreateValidatorText += ` } from "class-validator";\n`;
-console.log(importCreateValidatorText);
 
 const createDto = importCreateValidatorText + documentCreateDto;
 
@@ -279,7 +277,6 @@ importUpdateValidator.forEach((value, key, map) => {
   }
 });
 importUpdateValidatorText += ` } from "class-validator";\n`;
-console.log(importUpdateValidatorText);
 
 const updateDto = importUpdateValidatorText + documentUpdateDto;
 
@@ -301,7 +298,6 @@ importDeleteValidator.forEach((value, key, map) => {
   }
 });
 importDeleteValidatorText += ` } from "class-validator";\n`;
-console.log(importUpdateValidatorText);
 
 const deleteDto = importDeleteValidatorText + documentDeleteDto;
 
@@ -310,7 +306,13 @@ fs.writeFileSync(
   deleteDto
 );
 
-let documentController = `
+let documentController = `import { Injectable, Controller, Get, Post, Put, Delete, Body, Res, Req } from '@nestjs/common';
+import { Request, Response  } from 'express';
+import { ${tableName}Service } from './${globalFileName}.service';
+import { Create${tableName}Dto } from './dtos/${globalFileName}-dtos/create-${globalFileName}.dto';
+import { Update${tableName}Dto } from './dtos/${globalFileName}-dtos/update-${globalFileName}.dto';
+import { Delete${tableName}Dto } from './dtos/${globalFileName}-dtos/delete-${globalFileName}.dto';
+
 @Injectable()
 @Controller('${controllerServiceName}')
 export class ${tableName}Controller {
@@ -319,7 +321,51 @@ export class ${tableName}Controller {
   @Get()
   async fetchAll${controllerServiceNameAlt}() {
     return this.${controllerServiceName}Service.fetchAll${controllerServiceNameAlt}();
-  }`;
+  }
+  
+  @Post()
+  async create${controllerServiceNameAlt} (
+    @Body() create${tableName}Dto: Create${tableName}Dto,
+    @Res() res: Response,
+    @Req() req: Request
+  ) {
+    const cookie = req.cookies[process.env.REFRESH_TOKEN];
+    const pieUserPayload = await this.${controllerServiceName}Service.verifyJWT(cookie);
+    const result = await this.${controllerServiceName}Service.create${controllerServiceNameAlt}(
+      create${tableName}Dto,
+      pieUserPayload
+    )
+
+    if (result.hasOwnProperty('code')) return res.status(409).send(result);
+    return res.status(201).send(result);
+  }
+
+  @Put()
+  async update${controllerServiceNameAlt} (
+    @Body() update${tableName}Dto: Update${tableName}Dto,
+    @Res() res: Response,
+    @Req() req: Request
+  ) {
+    const cookie = req.cookies[process.env.REFRESH_TOKEN];
+    const pieUserPayload = await this.${controllerServiceName}Service.verifyJWT(cookie);
+      
+    const result = await this.${controllerServiceName}Service.update${controllerServiceNameAlt}(
+      update${tableName}Dto,
+      pieUserPayload
+    );
+
+    if (result.hasOwnProperty('code')) return res.status(409).send(result);
+    return res.status(200).send(result);
+  }
+
+  @Delete()
+  async delete${controllerServiceNameAlt} (
+    @Body() delete${tableName}Dto: Delete${tableName}Dto
+  ) {
+    return this.${controllerServiceName}Service.delete${controllerServiceNameAlt}(delete${tableName}Dto);
+  }
+}
+  `;
 
 fs.writeFileSync(
   `./${globalFileName}/${globalFileName}.controller.ts`,

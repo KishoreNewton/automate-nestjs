@@ -99,11 +99,15 @@ var documentDeleteDto = "\nexport class Delete" + tableName + "Dto {";
 var importCreateValidator = new Map();
 var importUpdateValidator = new Map();
 var importDeleteValidator = new Map();
+var createDtoArrary = [];
+var updateDtoArrary = [];
+var deleteDtoArray = [];
 for (var _a = 0, tableColumns_2 = tableColumns; _a < tableColumns_2.length; _a++) {
     var column = tableColumns_2[_a];
     var name_2 = column.name, type = column.type, nullable = column.nullable, primaryColumn = column.primaryColumn;
     if (primaryColumn) {
         importDeleteValidator.set('notnullable', 'IsNotEmpty');
+        deleteDtoArray.push(name_2);
         if (type === 'string') {
             importDeleteValidator.set('string', 'IsUUID');
             documentDeleteDto += "\n  @IsUUID(4)";
@@ -135,13 +139,14 @@ for (var _a = 0, tableColumns_2 = tableColumns; _a < tableColumns_2.length; _a++
             importCreateValidator.set('date', 'IsDate');
             documentCreateDto += "\n  @IsDate()";
         }
+        createDtoArrary.push(name_2);
         documentCreateDto += "\n  " + name_2 + ": " + type + ";\n";
     }
+    updateDtoArrary.push(name_2);
     if (!nullable && primaryColumn) {
         importUpdateValidator.set('nullable', 'IsNotEmpty');
         documentUpdateDto += "\n  @IsNotEmpty()";
     }
-    console.log(nullable, primaryColumn);
     if (nullable && !primaryColumn) {
         importUpdateValidator.set('nullable', 'IsOptional');
         documentUpdateDto += "\n  @IsOptional()";
@@ -180,7 +185,6 @@ importCreateValidator.forEach(function (value, key, map) {
     }
 });
 importCreateValidatorText += " } from \"class-validator\";\n";
-console.log(importCreateValidatorText);
 var createDto = importCreateValidatorText + documentCreateDto;
 fs.mkdirSync("./" + globalFileName + "/dtos/" + globalFileName + "-dtos", {
     recursive: true
@@ -199,7 +203,6 @@ importUpdateValidator.forEach(function (value, key, map) {
     }
 });
 importUpdateValidatorText += " } from \"class-validator\";\n";
-console.log(importUpdateValidatorText);
 var updateDto = importUpdateValidatorText + documentUpdateDto;
 fs.writeFileSync("./" + globalFileName + "/dtos/" + globalFileName + "-dtos/update-" + globalFileName + ".dto.ts", updateDto);
 var maxImportDeleteSizeDto = importCreateValidator.size + 1;
@@ -215,9 +218,8 @@ importDeleteValidator.forEach(function (value, key, map) {
     }
 });
 importDeleteValidatorText += " } from \"class-validator\";\n";
-console.log(importUpdateValidatorText);
 var deleteDto = importDeleteValidatorText + documentDeleteDto;
 fs.writeFileSync("./" + globalFileName + "/dtos/" + globalFileName + "-dtos/delete-" + globalFileName + ".dto.ts", deleteDto);
-var documentController = "\n@Injectable()\n@Controller('" + controllerServiceName + "')\nexport class " + tableName + "Controller {\n  constructor(private readonly " + controllerServiceName + "Service: " + tableName + "Service) {}\n  \n  @Get()\n  async fetchAll" + controllerServiceNameAlt + "() {\n    return this." + controllerServiceName + "Service.fetchAll" + controllerServiceNameAlt + "();\n  }";
+var documentController = "import { Injectable, Controller, Get, Post, Put, Delete, Body, Res, Req } from '@nestjs/common';\nimport { Request, Response  } from 'express';\nimport { " + tableName + "Service } from './" + globalFileName + ".service';\nimport { Create" + tableName + "Dto } from './dtos/" + globalFileName + "-dtos/create-" + globalFileName + ".dto';\nimport { Update" + tableName + "Dto } from './dtos/" + globalFileName + "-dtos/update-" + globalFileName + ".dto';\nimport { Delete" + tableName + "Dto } from './dtos/" + globalFileName + "-dtos/delete-" + globalFileName + ".dto';\n\n@Injectable()\n@Controller('" + controllerServiceName + "')\nexport class " + tableName + "Controller {\n  constructor(private readonly " + controllerServiceName + "Service: " + tableName + "Service) {}\n  \n  @Get()\n  async fetchAll" + controllerServiceNameAlt + "() {\n    return this." + controllerServiceName + "Service.fetchAll" + controllerServiceNameAlt + "();\n  }\n  \n  @Post()\n  async create" + controllerServiceNameAlt + " (\n    @Body() create" + tableName + "Dto: Create" + tableName + "Dto,\n    @Res() res: Response,\n    @Req() req: Request\n  ) {\n    const cookie = req.cookies[process.env.REFRESH_TOKEN];\n    const pieUserPayload = await this." + controllerServiceName + "Service.verifyJWT(cookie);\n    const result = await this." + controllerServiceName + "Service.create" + controllerServiceNameAlt + "(\n      create" + tableName + "Dto,\n      pieUserPayload\n    )\n\n    if (result.hasOwnProperty('code')) return res.status(409).send(result);\n    return res.status(201).send(result);\n  }\n\n  @Put()\n  async update" + controllerServiceNameAlt + " (\n    @Body() update" + tableName + "Dto: Update" + tableName + "Dto,\n    @Res() res: Response,\n    @Req() req: Request\n  ) {\n    const cookie = req.cookies[process.env.REFRESH_TOKEN];\n    const pieUserPayload = await this." + controllerServiceName + "Service.verifyJWT(cookie);\n      \n    const result = await this." + controllerServiceName + "Service.update" + controllerServiceNameAlt + "(\n      update" + tableName + "Dto,\n      pieUserPayload\n    );\n\n    if (result.hasOwnProperty('code')) return res.status(409).send(result);\n    return res.status(200).send(result);\n  }\n\n  @Delete()\n  async delete" + controllerServiceNameAlt + " (\n    @Body() delete" + tableName + "Dto: Delete" + tableName + "Dto\n  ) {\n    return this." + controllerServiceName + "Service.delete" + controllerServiceNameAlt + "(delete" + tableName + "Dto);\n  }\n}\n  ";
 fs.writeFileSync("./" + globalFileName + "/" + globalFileName + ".controller.ts", documentController);
 //# sourceMappingURL=index.js.map
