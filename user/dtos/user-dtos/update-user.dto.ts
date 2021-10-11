@@ -1,23 +1,31 @@
-import { IsOptional, IsString, IsNotEmpty } from "class-validator";
+import { IsOptional, IsNumber, IsNotEmpty, IsString } from 'class-validator';
 
 export class UpdateUserDto {
   @IsNotEmpty()
-  @IsString()
-  id: string;
+  @IsNumber()
+  id: number;
 
   @IsOptional()
   @IsString()
-  empNo: string;
+  dean: string;
 
   @IsOptional()
   @IsString()
-  organizationEmailId: string;
+  cass: string;
 
   @IsOptional()
   @IsString()
-  empStatus: string;
+  bobby: string;
 
   @IsOptional()
   @IsString()
-  mobileNumber: string;
+  sammy: string;
+
+  @IsNotEmpty()
+  @IsString()
+  pieUserGroup: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  pieUser: number;
 }

@@ -1,10 +1,13 @@
-
-import { BadRequestException, InternalServerErrorException, Injectable  } from '@nestjs/common';
-import { fetchAllUserHeres } from './constants/cache.constant';
-import { getConnection  } from 'typeorm';
-import { CoreOutput  } from 'sm-interfaces';
-import { UserHere } from './entities/user-here.entity';
-import { client  } from '../main';
+import {
+  BadRequestException,
+  InternalServerErrorException,
+  Injectable
+} from '@nestjs/common';
+import { fetchAllPieUsers } from './constants/cache.constant';
+import { getConnection } from 'typeorm';
+import { CoreOutput } from 'sm-interfaces';
+import { PieUser } from './entities/pie-user.entity';
+import { client } from '../main';
 import {
   PG_UNIQUE_CONSTRAINT_VIOLATION,
   PG_VIOLATES_FK_CONSTRAINT,
@@ -29,30 +32,28 @@ import {
 import * as jwt from 'jsonwebtoken';
 
 @Injectable()
-export class UserHereService {
+export class PieUserService {
   constructor() {}
 
-  async fetchAllUserHere () {
+  async fetchAllPieUser() {
     try {
-      const cache = await client.get(fetchAllUserHeres);
+      const cache = await client.get(fetchAllPieUsers);
       if (cache) return JSON.parse(cache);
     } catch (error) {
-      await client.del(fetchAllUserHeres);
+      await client.del(fetchAllPieUsers);
     }
 
-    const route = 'User Here';
+    const route = 'Pie User';
     const connection = getConnection();
     const queryRunner = connection.createQueryRunner();
-    
+
     await queryRunner.connect();
     await queryRunner.startTransaction();
-    
-    try {
-      const result = await queryRunner.manager.find<UserHere>(
-        UserHere
-      );
 
-      await client.set(fetchAllUserHeres, JSON.stringify(result));
+    try {
+      const result = await queryRunner.manager.find<PieUser>(PieUser);
+
+      await client.set(fetchAllPieUsers, JSON.stringify(result));
 
       await queryRunner.commitTransaction();
 
@@ -64,33 +65,35 @@ export class UserHereService {
         error: true,
         message: SomethingWentWrong,
         code: SomethingWentWrongCode
-      })
+      });
     } finally {
       await queryRunner.release();
     }
   }
 
-  async createUserHere (
-    { empNo, organizationEmailId, empStatus, mobileNumber  },
+  async createPieUser(
+    { Rafiale, empNo, bobby, sammy },
     pieUserPayload
   ): Promise<CoreOutput> {
-    const route = 'User Here';
-    const connection = getConnection(); 
+    const route = 'Pie User';
+    const connection = getConnection();
     const queryRunner = connection.createQueryRunner();
 
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      const userHere = new UserHere();
-      
-      userHere.empNo = empNo;
-      userHere.organizationEmailId = organizationEmailId;
-      userHere.empStatus = empStatus;
-      userHere.mobileNumber = mobileNumber;
+      const pieUser = new PieUser();
 
-      const result = await queryRunner.manager.save<UserHere>(userHere);
-      
+      pieUser.Rafiale = Rafiale;
+      pieUser.empNo = empNo;
+      pieUser.bobby = bobby;
+      pieUser.sammy = sammy;
+      pieUser.createdBy = pieUserPayload.empNo;
+      pieUser.updatedBy = pieUserPayload.empNo;
+
+      const result = await queryRunner.manager.save<PieUser>(pieUser);
+
       if (!result) {
         return {
           ok: false,
@@ -100,17 +103,16 @@ export class UserHereService {
         };
       }
 
-      await client.del(fetchAllUserHeres);
-  
+      await client.del(fetchAllPieUsers);
+
       return {
         ok: true,
         error: false,
         message: CreateSuccessful(route)
-      }
-    
+      };
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      
+
       if (error && error.code === PG_UNIQUE_CONSTRAINT_VIOLATION) {
         throw new BadRequestException({
           ok: false,
@@ -119,7 +121,7 @@ export class UserHereService {
           code: error.code
         });
       }
-      
+
       if (error && error.code === PG_VIOLATES_FK_CONSTRAINT) {
         throw new BadRequestException({
           ok: false,
@@ -128,24 +130,20 @@ export class UserHereService {
           code: error.code
         });
       }
-      
+
       throw new InternalServerErrorException({
         ok: false,
         error: true,
         code: SomethingWentWrongCode,
         message: SomethingWentWrong
       });
-    
     } finally {
       await queryRunner.release();
     }
   }
 
-  async updateUserHere (
-    { id, empNo, organizationEmailId, empStatus, mobileNumber  },
-    pieUserPayload
-  ) {
-    const route = 'User Here';
+  async updatePieUser({ id, Rafiale, empNo, bobby, sammy }, pieUserPayload) {
+    const route = 'Pie User';
     const connection = getConnection();
     const queryRunner = connection.createQueryRunner();
 
@@ -153,19 +151,20 @@ export class UserHereService {
     await queryRunner.startTransaction();
 
     try {
-      const userHere = new UserHere();
-      
-      userHere.id = id;
-      if (empNo)  userHere.empNo = empNo;
-      if (organizationEmailId)  userHere.organizationEmailId = organizationEmailId;
-      if (empStatus) userHere.empStatus = empStatus
-      if (mobileNumber)  userHere.mobileNumber = mobileNumber;
+      const pieUser = new PieUser();
 
-      const result = await queryRunner.manager.update<UserHere>(
-        UserHere,
-        { id  },
-        userHere
-      )
+      pieUser.id = id;
+      if (Rafiale) pieUser.Rafiale = Rafiale;
+      if (empNo) pieUser.empNo = empNo;
+      if (bobby) pieUser.bobby = bobby;
+      if (sammy) pieUser.sammy = sammy;
+      pieUser.updatedBy = pieUserPayload.empNo;
+
+      const result = await queryRunner.manager.update<PieUser>(
+        PieUser,
+        { id },
+        pieUser
+      );
 
       if (result.affected === 0) {
         return {
@@ -178,14 +177,13 @@ export class UserHereService {
 
       await queryRunner.commitTransaction();
 
-      await client.del(fetchAllUserHeres);
+      await client.del(fetchAllPieUsers);
 
       return {
         ok: true,
         error: false,
         message: UpdateSuccessful(route)
-      }
-
+      };
     } catch (error) {
       await queryRunner.rollbackTransaction();
 
@@ -213,7 +211,51 @@ export class UserHereService {
         code: SomethingWentWrongCode,
         message: SomethingWentWrong
       });
+    } finally {
+      await queryRunner.release();
+    }
+  }
 
+  async deletePieUser({ id }, pieUserPayload) {
+    const route = 'Pie User';
+    const connection = getConnection();
+    const queryRunner = connection.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const result = await queryRunner.manager.delete<PieUser>(PieUser, {
+        id
+      });
+
+      await queryRunner.commitTransaction();
+
+      if (result.affected === 0) {
+        return {
+          ok: false,
+          error: true,
+          message: UnableToDeleteParticular(route),
+          code: UnableToDeleteParticularCode
+        };
+      }
+
+      await client.del(fetchAllPieUsers);
+
+      return {
+        ok: true,
+        error: false,
+        message: DeleteSuccessful(route)
+      };
+    } catch {
+      await queryRunner.rollbackTransaction();
+
+      throw new InternalServerErrorException({
+        ok: false,
+        error: true,
+        code: SomethingWentWrongCode,
+        message: SomethingWentWrong
+      });
     } finally {
       await queryRunner.release();
     }

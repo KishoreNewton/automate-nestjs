@@ -1,13 +1,13 @@
 import { IsNotEmpty, IsString, IsOptional, IsNumber } from 'class-validator';
 
-export class CreateUserDto {
+export class CreatePieUserDto {
   @IsNotEmpty()
   @IsString()
-  dean: string;
+  Rafiale: string;
 
   @IsOptional()
   @IsString()
-  cass: string;
+  empNo: string;
 
   @IsNotEmpty()
   @IsString()

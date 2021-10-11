@@ -1,19 +1,23 @@
-import { IsNotEmpty, IsString, IsOptional, IsNumber } from 'class-validator';
+import { IsOptional, IsString, IsNotEmpty, IsNumber } from 'class-validator';
 
-export class CreateUserDto {
+export class UpdatePieUserDto {
   @IsNotEmpty()
   @IsString()
-  dean: string;
+  id: string;
 
   @IsOptional()
   @IsString()
-  cass: string;
+  Rafiale: string;
 
-  @IsNotEmpty()
+  @IsOptional()
+  @IsString()
+  empNo: string;
+
+  @IsOptional()
   @IsString()
   bobby: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   sammy: string;
 

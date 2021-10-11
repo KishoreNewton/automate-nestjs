@@ -10,25 +10,25 @@ import {
   PrimaryGeneratedColumn,
   Column
 } from 'typeorm';
-import { PieUserRoleMapping } from '../../User/entities/pieUser';
-import { PieUserServiceAccess } from '../../User/entities/pieUser';
-import { PieUserApplicationAccess } from '../../User/entities/pieUser';
-import { PieUserGroup } from '../../User/entities/pieUser';
-import { PieUser } from '../../User/entities/pieUser';
+import { PieUserRoleMapping } from '../../Pie User/entities/pieUser';
+import { PieUserServiceAccess } from '../../Pie User/entities/pieUser';
+import { PieUserApplicationAccess } from '../../Pie User/entities/pieUser';
+import { PieUserGroup } from '../../Pie User/entities/pieUser';
+import { PieUser } from '../../Pie User/entities/pieUser';
 
 @Entity()
-export class User {
+export class PieUser {
   @Index()
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Index()
   @Column({ unique: true })
-  dean: string;
+  Rafiale: string;
 
   @Index()
   @Column({ nullable: true, type: 'citext' })
-  cass: string;
+  empNo: string;
 
   @Index()
   @Column()
@@ -40,24 +40,24 @@ export class User {
 
   @OneToMany(
     () => PieUserRoleMapping,
-    pieUserRoleMapping => pieUserRoleMapping.user
+    pieUserRoleMapping => pieUserRoleMapping.pieUser
   )
   pieUserRoleMapping: PieUserRoleMapping[];
 
   @OneToMany(
     () => PieUserServiceAccess,
-    pieUserServiceAccess => pieUserServiceAccess.user
+    pieUserServiceAccess => pieUserServiceAccess.pieUser
   )
   pieUserServiceAccess: PieUserServiceAccess[];
 
   @OneToMany(
     () => PieUserApplicationAccess,
-    pieUserApplicationAccess => pieUserApplicationAccess.user
+    pieUserApplicationAccess => pieUserApplicationAccess.pieUser
   )
   pieUserApplicationAccess: PieUserApplicationAccess[];
 
   @JoinColumn()
-  @ManyToOne(() => PieUserGroup, pieUserGroup => pieUserGroup.user, {
+  @ManyToOne(() => PieUserGroup, pieUserGroup => pieUserGroup.pieUser, {
     cascade: true,
     onDelete: 'CASCADE',
     onUpdate: 'CASCADE',
@@ -68,7 +68,7 @@ export class User {
   pieUserGroup: PieUserGroup;
 
   @JoinColumn()
-  @OneToOne(() => PieUser, pieUser => pieUser.user, {
+  @OneToOne(() => PieUser, pieUser => pieUser.pieUser, {
     cascade: true,
     onDelete: 'CASCADE',
     onUpdate: 'CASCADE',

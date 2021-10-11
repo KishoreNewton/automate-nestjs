@@ -1,1 +1,1 @@
-export const fetchAllUsers = "fetchAllUsers";
+export const fetchAllUsers = 'fetchAllUsers';

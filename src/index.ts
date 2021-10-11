@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as util from 'util';
 
-const tableName = 'UserHere';
+const tableName = 'PieUser';
 const globalFileName = tableName
   .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
   .toLowerCase();
@@ -17,29 +17,12 @@ const tableColumns = [
     type: 'string'
   },
   {
-    name: 'empNo',
+    name: 'email',
     index: true,
     unique: true,
     nullable: false,
-    type: 'string'
-  },
-  {
-    name: 'organizationEmailId',
-    index: true,
-    columnType: 'citext',
-    nullable: true,
-    type: 'string'
-  },
-  {
-    name: 'empStatus',
-    index: true,
-    unique: false,
-    type: 'string'
-  },
-  {
-    name: 'mobileNumber',
-    index: true,
-    type: 'string'
+    type: 'string',
+    columnType: 'citext'
   }
 ];
 const forigenColumns = [
@@ -63,15 +46,18 @@ const forigenColumns = [
     onUpdate: 'CASCADE',
     orphanedRowAction: 'delete',
     eager: true,
+    createNew: true,
     nullable: false,
-    joinColumn: true
+    joinColumn: true,
+    forigenKeyType: 'string'
   },
   {
     forignTableName: 'PieUser',
     type: 'OneToOne',
     onDelete: 'CASCADE',
     onUpdate: 'CASCADE',
-    joinColumn: true
+    joinColumn: true,
+    forigenKeyType: 'number'
   }
 ];
 
@@ -102,6 +88,8 @@ importTypeorm.set('updatedDateColumn', 'UpdatedDateColumn');
 
 let forignLowerCaseWithHyphen: string;
 let forignSnakeCase: string;
+let forignRouteName: string;
+const forignKeyCreateUpdate = [];
 
 for (let forign of forigenColumns) {
   let {
@@ -113,7 +101,8 @@ for (let forign of forigenColumns) {
     orphanedRowAction,
     eager,
     nullable,
-    joinColumn
+    joinColumn,
+    forigenKeyType
   } = forign;
 
   forignLowerCaseWithHyphen = forignTableName
@@ -121,40 +110,43 @@ for (let forign of forigenColumns) {
     .toLowerCase();
   forignSnakeCase =
     forignTableName.charAt(0).toLowerCase() + forignTableName.slice(1);
-  const controllerServiceNameAlt =
-    tableName.charAt(0).toUpperCase() + tableName.slice(1);
-  const routeName = tableName.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+  forignRouteName = tableName.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
   importForigenTable.set(forignTableName.toLowerCase, forignTableName);
 
-  if (cascade !== null) forignObject.cascade = cascade;
+  if (cascade !== undefined) forignObject.cascade = cascade;
   if (onDelete) forignObject.onDelete = onDelete;
   if (onUpdate) forignObject.onUpdate = onUpdate;
   if (orphanedRowAction) forignObject.orphanedRowAction = orphanedRowAction;
-  if (eager !== null) forignObject.eager = eager;
-  if (nullable !== null) forignObject.nullable = nullable;
+  if (eager !== undefined) forignObject.eager = eager;
+  if (nullable !== undefined) forignObject.nullable = nullable;
 
   if (joinColumn) {
     forignEntity += `
   @JoinColumn()`;
-importTypeorm.set('joinColumn', 'JoinColumn');
+    importTypeorm.set('joinColumn', 'JoinColumn');
+    forignKeyCreateUpdate.push({ forignSnakeCase, forigenKeyType });
   }
 
   if (type === 'OneToMany') {
     forignEntity += `
   @OneToMany(() => ${forignTableName}, ${forignSnakeCase} => ${forignSnakeCase}.${controllerServiceName})`;
-importTypeorm.set('joinColumn', 'JoinColumn');
+    importTypeorm.set('oneToMany', 'OneToMany');
   }
 
   if (type == 'ManyToOne') {
     forignEntity += `
-  @ManyToOne(() => ${forignTableName}, ${forignSnakeCase} => ${forignSnakeCase}.${controllerServiceName}, ${forignObject})`;
-importTypeorm.set('manyToOne', 'ManyToOne');
+  @ManyToOne(() => ${forignTableName}, ${forignSnakeCase} => ${forignSnakeCase}.${controllerServiceName}${
+      Object.keys(forignObject).length === 0 ? ' ' : ','
+    } ${util.inspect(forignObject, false, null, false)})`;
+    importTypeorm.set('manyToOne', 'ManyToOne');
   }
 
   if (type === 'OneToOne') {
     forignEntity += `
-  @OneToOne(() => ${forignTableName}, ${forignSnakeCase} => ${forignSnakeCase}.${controllerServiceName}, ${forignObject})`;
-importTypeorm.set('oneToOne', 'OneToOne');
+  @OneToOne(() => ${forignTableName}, ${forignSnakeCase} => ${forignSnakeCase}.${controllerServiceName}${
+      Object.keys(forignObject).length === 0 ? '' : ','
+    } ${util.inspect(forignObject, false, null, false)} )`;
+    importTypeorm.set('oneToOne', 'OneToOne');
   }
 
   if (type === 'OneToMany') {
@@ -167,8 +159,6 @@ importTypeorm.set('oneToOne', 'OneToOne');
   `;
   }
 }
-
-console.log(forignEntity);
 
 for (let column of tableColumns) {
   let { name, primaryColumn, index, uuid, type, columnType, nullable, unique } =
@@ -210,6 +200,14 @@ documentEntity += forignEntity;
 
 documentEntity += `
   @Index()
+  @Column()
+  ${createdByColumn}: string;
+
+  @Index()
+  @Column()
+  ${updatedByColumn}: string;
+
+  @Index()
   @CreatedDateColumn()
   ${createdColumn}: Date;
 
@@ -218,10 +216,7 @@ documentEntity += `
   ${updatedColumn}: Date;
 }`;
 
-
-
 const maxImportSizeTypeORM = importTypeorm.size + 1;
-
 let importTypeormText = 'import {';
 let loopTypeORM = 1;
 importTypeorm.forEach((value, key, map) => {
@@ -235,7 +230,12 @@ importTypeorm.forEach((value, key, map) => {
 
 importTypeormText += ` } from "typeorm";\n`;
 
-const entity = importTypeormText + documentEntity;
+let importForignColumnText = '';
+forigenColumns.forEach(column => {
+  importForignColumnText += `import { ${column.forignTableName}  } from '../../${forignRouteName}/entities/${forignSnakeCase}';\n`;
+});
+
+const entity = importTypeormText + importForignColumnText + documentEntity;
 
 fs.mkdirSync(`./${globalFileName}/entities`, { recursive: true });
 fs.writeFileSync(
@@ -351,6 +351,41 @@ for (let column of tableColumns) {
   documentUpdateDto += `
   ${name}: ${type};\n`;
 }
+
+forignKeyCreateUpdate.forEach(key => {
+  if (key.forigenKeyType === 'string') {
+    importCreateValidator.set('notnullable', 'IsNotEmpty');
+    importCreateValidator.set('string', 'IsString');
+    documentCreateDto += `
+  @IsNotEmpty()
+  @IsString()
+  ${key.forignSnakeCase}: ${key.forigenKeyType};\n`;
+  } else {
+    importCreateValidator.set('notnullable', 'IsNotEmpty');
+    importCreateValidator.set('number', 'IsNumber');
+    documentCreateDto += `
+  @IsNotEmpty()
+  @IsNumber()
+  ${key.forignSnakeCase}: ${key.forigenKeyType};\n`;
+  }
+});
+forignKeyCreateUpdate.forEach(key => {
+  if (key.forigenKeyType === 'string') {
+    importUpdateValidator.set('string', 'IsString');
+    importDeleteValidator.set('notnullable', 'IsNotEmpty');
+    documentUpdateDto += `
+  @IsNotEmpty()
+  @IsString()
+  ${key.forignSnakeCase}: ${key.forigenKeyType};\n`;
+  } else {
+    importUpdateValidator.set('number', 'IsNumber');
+    importDeleteValidator.set('notnullable', 'IsNotEmpty');
+    documentUpdateDto += `
+  @IsNotEmpty()
+  @IsNumber()
+  ${key.forignSnakeCase}: ${key.forigenKeyType};\n`;
+  }
+});
 
 documentCreateDto += `}`;
 documentUpdateDto += `}`;
@@ -637,6 +672,8 @@ export class ${tableName}Service {
     try {
       const ${controllerServiceName} = new ${tableName}();
       ${createServiceSave};
+      ${controllerServiceName}.${createdByColumn} = pieUserPayload.empNo;
+      ${controllerServiceName}.${updatedByColumn} = pieUserPayload.empNo;
 
       const result = await queryRunner.manager.save<${tableName}>(${controllerServiceName});
       
@@ -704,6 +741,7 @@ export class ${tableName}Service {
     try {
       const ${controllerServiceName} = new ${tableName}();
       ${updateServiceSave}
+      ${controllerServiceName}.${updatedByColumn} = pieUserPayload.empNo;
 
       const result = await queryRunner.manager.update<${tableName}>(
         ${tableName},
@@ -762,6 +800,57 @@ export class ${tableName}Service {
       await queryRunner.release();
     }
   }
+
+  async delete${tableName} (
+    { ${primaryKey[0].name}  }, 
+    pieUserPayload
+  ) {
+    const route = '${routeName}';
+    const connection = getConnection();
+    const queryRunner = connection.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const result = await queryRunner.manager.delete<${tableName}>(
+        ${tableName},
+        {
+          ${primaryKey[0].name}
+        }
+      );
+      
+      await queryRunner.commitTransaction();
+
+      if (result.affected === 0) {
+        return {
+          ok: false,
+          error: true,
+          message: UnableToDeleteParticular(route),
+          code: UnableToDeleteParticularCode
+        }
+      }
+
+      await client.del(fetchAll${tableName}s);
+
+      return {
+        ok: true,
+        error: false,
+        message: DeleteSuccessful(route)
+      }
+    } catch {
+      await queryRunner.rollbackTransaction();
+
+      throw new InternalServerErrorException({
+        ok: false,
+        error: true,
+        code: SomethingWentWrongCode,
+        message: SomethingWentWrong
+      });
+    } finally {
+      await queryRunner.release();
+    }
+  } 
 
   async verifyJWT(token: string) {
     try {
