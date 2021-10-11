@@ -1,14 +1,12 @@
 import * as fs from 'fs';
 import * as util from 'util';
 
-const tableName = 'User';
+const tableName = 'UserHere';
 const globalFileName = tableName
   .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
   .toLowerCase();
 const controllerServiceName =
   tableName.charAt(0).toLowerCase() + tableName.slice(1);
-const controllerServiceNameAlt =
-  tableName.charAt(0).toUpperCase() + tableName.slice(1);
 const routeName = tableName.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
 const tableColumns = [
   {
@@ -44,6 +42,39 @@ const tableColumns = [
     type: 'string'
   }
 ];
+const forigenColumns = [
+  {
+    forignTableName: 'PieUserRoleMapping',
+    type: 'OneToMany'
+  },
+  {
+    forignTableName: 'PieUserServiceAccess',
+    type: 'OneToMany'
+  },
+  {
+    forignTableName: 'PieUserApplicationAccess',
+    type: 'OneToMany'
+  },
+  {
+    forignTableName: 'PieUserGroup',
+    type: 'ManyToOne',
+    cascade: true,
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+    orphanedRowAction: 'delete',
+    eager: true,
+    nullable: false,
+    joinColumn: true
+  },
+  {
+    forignTableName: 'PieUser',
+    type: 'OneToOne',
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+    joinColumn: true
+  }
+];
+
 const createdColumn = 'createdOn';
 const updatedColumn = 'updatedOn';
 const createdByColumn = 'createdBy';
@@ -53,17 +84,91 @@ const primaryKey = tableColumns.filter(column => {
   return column.primaryColumn === true;
 });
 
-let documentEnity = `
+let documentEntity = `
 @Entity()
 export class ${tableName} {`;
 
+let forignEntity = '';
+
 let importTypeorm = new Map();
-let importForigenKey: string[] = [];
 let columnObject: any = {};
+
+let importForigenTable = new Map();
+let forignObject: any = {};
 
 importTypeorm.set('entity', 'Entity');
 importTypeorm.set('createdDateColumn', 'CreatedDateColumn');
 importTypeorm.set('updatedDateColumn', 'UpdatedDateColumn');
+
+let forignLowerCaseWithHyphen: string;
+let forignSnakeCase: string;
+
+for (let forign of forigenColumns) {
+  let {
+    forignTableName,
+    type,
+    cascade,
+    onDelete,
+    onUpdate,
+    orphanedRowAction,
+    eager,
+    nullable,
+    joinColumn
+  } = forign;
+
+  forignLowerCaseWithHyphen = forignTableName
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .toLowerCase();
+  forignSnakeCase =
+    forignTableName.charAt(0).toLowerCase() + forignTableName.slice(1);
+  const controllerServiceNameAlt =
+    tableName.charAt(0).toUpperCase() + tableName.slice(1);
+  const routeName = tableName.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+  importForigenTable.set(forignTableName.toLowerCase, forignTableName);
+
+  if (cascade !== null) forignObject.cascade = cascade;
+  if (onDelete) forignObject.onDelete = onDelete;
+  if (onUpdate) forignObject.onUpdate = onUpdate;
+  if (orphanedRowAction) forignObject.orphanedRowAction = orphanedRowAction;
+  if (eager !== null) forignObject.eager = eager;
+  if (nullable !== null) forignObject.nullable = nullable;
+
+  if (joinColumn) {
+    forignEntity += `
+  @JoinColumn()`;
+importTypeorm.set('joinColumn', 'JoinColumn');
+  }
+
+  if (type === 'OneToMany') {
+    forignEntity += `
+  @OneToMany(() => ${forignTableName}, ${forignSnakeCase} => ${forignSnakeCase}.${controllerServiceName})`;
+importTypeorm.set('joinColumn', 'JoinColumn');
+  }
+
+  if (type == 'ManyToOne') {
+    forignEntity += `
+  @ManyToOne(() => ${forignTableName}, ${forignSnakeCase} => ${forignSnakeCase}.${controllerServiceName}, ${forignObject})`;
+importTypeorm.set('manyToOne', 'ManyToOne');
+  }
+
+  if (type === 'OneToOne') {
+    forignEntity += `
+  @OneToOne(() => ${forignTableName}, ${forignSnakeCase} => ${forignSnakeCase}.${controllerServiceName}, ${forignObject})`;
+importTypeorm.set('oneToOne', 'OneToOne');
+  }
+
+  if (type === 'OneToMany') {
+    forignEntity += `
+  ${forignSnakeCase}: ${forignTableName}[];
+  `;
+  } else {
+    forignEntity += `
+  ${forignSnakeCase}: ${forignTableName};
+  `;
+  }
+}
+
+console.log(forignEntity);
 
 for (let column of tableColumns) {
   let { name, primaryColumn, index, uuid, type, columnType, nullable, unique } =
@@ -75,13 +180,13 @@ for (let column of tableColumns) {
 
   if (index) {
     importTypeorm.set('index', 'Index');
-    documentEnity += `
+    documentEntity += `
   @Index()`;
   }
 
   if (primaryColumn) {
     importTypeorm.set('primaryColumn', 'PrimaryGeneratedColumn');
-    documentEnity += `
+    documentEntity += `
   @PrimaryGeneratedColumn(${uuid ? "'uuid'" : ''})
   ${name}: ${type};
     `;
@@ -89,7 +194,7 @@ for (let column of tableColumns) {
 
   if (!primaryColumn) {
     importTypeorm.set('defaultColumn', 'Column');
-    documentEnity += `
+    documentEntity += `
   @Column(${
     Object.keys(columnObject).length === 0
       ? ''
@@ -101,7 +206,9 @@ for (let column of tableColumns) {
   columnObject = {};
 }
 
-documentEnity += `
+documentEntity += forignEntity;
+
+documentEntity += `
   @Index()
   @CreatedDateColumn()
   ${createdColumn}: Date;
@@ -110,6 +217,8 @@ documentEnity += `
   @UpdatedDateColumn()
   ${updatedColumn}: Date;
 }`;
+
+
 
 const maxImportSizeTypeORM = importTypeorm.size + 1;
 
@@ -126,7 +235,7 @@ importTypeorm.forEach((value, key, map) => {
 
 importTypeormText += ` } from "typeorm";\n`;
 
-const entity = importTypeormText + documentEnity;
+const entity = importTypeormText + documentEntity;
 
 fs.mkdirSync(`./${globalFileName}/entities`, { recursive: true });
 fs.writeFileSync(
@@ -326,19 +435,19 @@ export class ${tableName}Controller {
   constructor(private readonly ${controllerServiceName}Service: ${tableName}Service) {}
   
   @Get()
-  async fetchAll${controllerServiceNameAlt}() {
-    return this.${controllerServiceName}Service.fetchAll${controllerServiceNameAlt}();
+  async fetchAll${tableName}() {
+    return this.${controllerServiceName}Service.fetchAll${tableName}();
   }
   
   @Post()
-  async create${controllerServiceNameAlt} (
+  async create${tableName} (
     @Body() create${tableName}Dto: Create${tableName}Dto,
     @Res() res: Response,
     @Req() req: Request
   ) {
     const cookie = req.cookies[process.env.REFRESH_TOKEN];
     const pieUserPayload = await this.${controllerServiceName}Service.verifyJWT(cookie);
-    const result = await this.${controllerServiceName}Service.create${controllerServiceNameAlt}(
+    const result = await this.${controllerServiceName}Service.create${tableName}(
       create${tableName}Dto,
       pieUserPayload
     )
@@ -348,7 +457,7 @@ export class ${tableName}Controller {
   }
 
   @Put()
-  async update${controllerServiceNameAlt} (
+  async update${tableName} (
     @Body() update${tableName}Dto: Update${tableName}Dto,
     @Res() res: Response,
     @Req() req: Request
@@ -356,7 +465,7 @@ export class ${tableName}Controller {
     const cookie = req.cookies[process.env.REFRESH_TOKEN];
     const pieUserPayload = await this.${controllerServiceName}Service.verifyJWT(cookie);
       
-    const result = await this.${controllerServiceName}Service.update${controllerServiceNameAlt}(
+    const result = await this.${controllerServiceName}Service.update${tableName}(
       update${tableName}Dto,
       pieUserPayload
     );
@@ -366,10 +475,10 @@ export class ${tableName}Controller {
   }
 
   @Delete()
-  async delete${controllerServiceNameAlt} (
+  async delete${tableName} (
     @Body() delete${tableName}Dto: Delete${tableName}Dto
   ) {
-    return this.${controllerServiceName}Service.delete${controllerServiceNameAlt}(delete${tableName}Dto);
+    return this.${controllerServiceName}Service.delete${tableName}(delete${tableName}Dto);
   }
 }
   `;
@@ -476,7 +585,7 @@ import * as jwt from 'jsonwebtoken';
 export class ${tableName}Service {
   constructor() {}
 
-  async fetchAll${controllerServiceNameAlt} () {
+  async fetchAll${tableName} () {
     try {
       const cache = await client.get(fetchAll${tableName}s);
       if (cache) return JSON.parse(cache);
